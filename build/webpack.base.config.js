@@ -5,7 +5,16 @@ module.exports = {
   devtool: '#source-map',
   entry: {
     app: './src/client-entry.js',
-    vendor: ['vue', 'vue-router', 'vuex', 'firebase', 'lru-cache', 'es6-promise']
+    vendor: [
+      'vue',
+      'vue-router',
+      'vuex',
+      'firebase',
+      'lru-cache',
+      'es6-promise',
+      'raven-js',
+      'raven-js/plugins/vue'
+    ]
   },
   output: {
     path: path.resolve(__dirname, '../dist'),

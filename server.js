@@ -9,6 +9,10 @@ const favicon = require('serve-favicon')
 const serialize = require('serialize-javascript')
 const compression = require('compression')
 
+const sentryURL = 'https://3e4707b9e6f44859b0114d26ec5539a5:de55022a507e4cbfb9b444fc55c79156@sentry.io/112601'
+const raven = require('raven')
+const sentry = new raven.Client(sentryURL)
+
 // https://github.com/vuejs/vue/blob/next/packages/vue-server-renderer/README.md#why-use-bundlerenderer
 const createBundleRenderer = require('vue-server-renderer').createBundleRenderer
 
@@ -32,6 +36,8 @@ if (isProd) {
   // create server renderer from real fs
   const bundlePath = resolve('./dist/server-bundle.js')
   renderer = createRenderer(fs.readFileSync(bundlePath, 'utf-8'))
+  // sentry error tracking
+  app.use(raven.middleware.express.requestHandler(sentryURL))
 } else {
   require('./build/setup-dev-server')(app, bundle => {
     renderer = createRenderer(bundle)
@@ -47,7 +53,7 @@ function createRenderer (bundle) {
   })
 }
 
-app.use(compression({threshold: 0}))
+app.use(compression({ threshold: 0 }))
 app.use('/dist', express.static(resolve('./dist')))
 app.use(favicon(resolve('./src/assets/logo.png')))
 
@@ -87,8 +93,13 @@ app.get('*', (req, res) => {
     res.status(500).end('Internal Error 500')
     console.error(`error during render : ${req.url}`)
     console.error(err)
+    sentry.captureException(err)
   })
 })
+
+if (isProd) {
+  app.use(raven.middleware.express.errorHandler(sentryURL))
+}
 
 const port = process.env.PORT || 8080
 app.listen(port, () => {
